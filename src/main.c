@@ -10,7 +10,7 @@
 #include "../lv_drivers-src/display/fbdev.h"
 #include "../lv_drivers-src/sdl/sdl.h"
 
-#define DISP_BUF_SIZE (SDL_HOR_RES * 100)
+#define DISP_BUF_SIZE (SDL_HOR_RES * SDL_VER_RES)
 
 int main(void) {
 
