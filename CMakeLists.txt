@@ -4,7 +4,12 @@ include(FetchContent)
 project(MyProject LANGUAGES C)
 
 # Build an executable called "MyFirmware"
-add_executable(MyFirmware src/main.c)
+add_executable(MyFirmware
+    src/main.c
+    src/img_icon_temperature.c
+    src/img_icon_humidity.c
+    src/img_icon_pressure.c
+    src/img_icon_eco2.c)
 
 # Specify path to own LVGL config header
 set(LV_CONF_PATH
