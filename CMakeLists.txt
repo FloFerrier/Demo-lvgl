@@ -21,6 +21,10 @@ set(LV_LVGL_H_INCLUDE_SIMPLE)
 find_package(SDL2 REQUIRED SDL2)
 include_directories(${SDL2_INCLUDE_DIRS})
 
+# Specify path to get MariaDB package
+list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules")
+find_package(MariaDBClient REQUIRED)
+
 # Fetch LVGL from GitHub
 FetchContent_Declare(lvgl GIT_REPOSITORY https://github.com/lvgl/lvgl.git GIT_TAG v8.2.0)
 FetchContent_MakeAvailable(lvgl)
@@ -29,5 +33,5 @@ FetchContent_MakeAvailable(lvgl)
 FetchContent_Declare(lv_drivers GIT_REPOSITORY https://github.com/lvgl/lv_drivers GIT_TAG v8.2.0)
 FetchContent_MakeAvailable(lv_drivers)
 
-# The target "MyFirmware" depends on LVGL and drivers
-target_link_libraries(MyFirmware PRIVATE lvgl::lvgl lvgl::drivers ${SDL2_LIBRARIES})
+# The target "MyFirmware" depends on LVGL, drivers and MariaDB
+target_link_libraries(MyFirmware PRIVATE MariaDBClient::MariaDBClient lvgl::lvgl lvgl::drivers ${SDL2_LIBRARIES})

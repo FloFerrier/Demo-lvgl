@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <time.h>
+#include <stdbool.h>
+#include <mysql.h>
 #include <SDL2/SDL.h>
 
 #define SDL_MAIN_HANDLED /*To fix SDL's "undefined reference to WinMain" issue*/
@@ -13,25 +15,46 @@
 
 #define DISP_BUF_SIZE (SDL_HOR_RES * SDL_VER_RES)
 
-enum flag_e {
-    FLAG_TEMPERATURE,
-    FLAG_HUMIDITY,
-    FLAG_PRESSURE,
-    FLAG_ECO2,
+#define BUFFER_CHARACTERS_MAX 255
+#define DATA_NB_ELMT_MAX      255
+
+#define MYSQL_USER_NAME      "openpill-dev"
+#define MYSQL_USER_PASSWORD  "openpill"
+#define MYSQL_DATABASE       "Openpill"
+#define MYSQL_TABLE_SELECTED "13July2022"
+
+enum type_graphic_e {
+    TYPE_GRAPHIC_TEMPERATURE,
+    TYPE_GRAPHIC_HUMIDITY,
+    TYPE_GRAPHIC_PRESSURE,
+    TYPE_GRAPHIC_ECO2,
 };
 
 static lv_obj_t *timestamp;
+static MYSQL *con;
+
+static int g_id;
+static int g_timestamp;
+static int g_temperature;
+static int g_humidity;
+static int g_pressure;
+static int g_eco2;
 
 static void box_btn_event(lv_event_t *event);
 static void back_btn_event(lv_event_t *event);
 
 static void page_home_open(void);
-static void page_graphics_open(enum flag_e flag_graphic);
+static void page_graphics_open(enum type_graphic_e flag_graphic);
 
-static void create_box(lv_obj_t *parent, enum flag_e flag);
-static void line_chart(lv_obj_t *parent);
+static void create_box(lv_obj_t *parent, enum type_graphic_e flag_graphic);
+static void line_chart(lv_obj_t *parent, enum type_graphic_e flag_graphic);
 static void tab_view(lv_obj_t *parent);
 static void back_btn(lv_obj_t *parent);
+
+static bool mysql_command(MYSQL *con, const char *cmd, char *res, size_t *size_res);
+
+static void get_data_graphic(MYSQL *con, enum type_graphic_e type, int *data, int *nb_elmt);
+static void get_data_dashboard(MYSQL *con, int *data, int *nb_elmt);
 
 int main(void) {
 
@@ -69,6 +92,25 @@ int main(void) {
     /*Register the driver in LVGL and save the created input device object*/
     lv_indev_t *my_indev = lv_indev_drv_register(&indev_drv);
 
+    LV_LOG_USER("MySQL client version: %s", mysql_get_client_info());
+    con = mysql_init(NULL);
+    if(NULL == con) {
+        fprintf(stderr, "%s\n", mysql_error(con));
+    }
+
+    if(NULL == mysql_real_connect(con, "localhost", MYSQL_USER_NAME, MYSQL_USER_PASSWORD,
+        NULL, 0, NULL, 0)) {
+        fprintf(stderr, "%s\n", mysql_error(con));
+        mysql_close(con);
+    }
+
+    /* Select correct database */
+    if(0 != mysql_select_db(con, MYSQL_DATABASE)) {
+        fprintf(stderr, "Error to select %s\n", MYSQL_DATABASE);
+        mysql_close(con);
+    }
+    LV_LOG_USER("%s is selected with success", MYSQL_DATABASE);
+
     /* Page at startup */
     page_home_open();
 
@@ -87,10 +129,32 @@ int main(void) {
         //usleep(5000);
     }
 
+    mysql_close(con);
     return 0;
 }
 
 void page_home_open(void) {
+    int *data = malloc(sizeof(int)*DATA_NB_ELMT_MAX);
+    int nb_elmt = 0;
+    get_data_dashboard(con, data, &nb_elmt);
+    if(6 != nb_elmt) {
+        LV_LOG_USER("data from databse may to be corrupted ...");
+    }
+    else {
+        g_id          = data[0];
+        g_timestamp   = data[1];
+        g_temperature = data[2];
+        g_humidity    = data[3];
+        g_pressure    = data[4];
+        g_eco2        = data[5];
+        LV_LOG_USER("ID= %d", g_id);
+        LV_LOG_USER("Timestamp= %d", g_timestamp);
+        LV_LOG_USER("Temperature= %d", g_temperature);
+        LV_LOG_USER("Humidity= %d", g_humidity);
+        LV_LOG_USER("Pressure= %d", g_pressure);
+        LV_LOG_USER("eCO2= %d", g_eco2);
+    }
+    free(data);
 
     static lv_style_t style_page;
     lv_style_init(&style_page);
@@ -104,16 +168,16 @@ void page_home_open(void) {
     lv_obj_add_style(obj_page, &style_page, 0);
 
     /* Define specific box */
-    create_box(obj_page, FLAG_TEMPERATURE);
-    create_box(obj_page, FLAG_HUMIDITY);
-    create_box(obj_page, FLAG_PRESSURE);
-    create_box(obj_page, FLAG_ECO2);
+    create_box(obj_page, TYPE_GRAPHIC_TEMPERATURE);
+    create_box(obj_page, TYPE_GRAPHIC_HUMIDITY);
+    create_box(obj_page, TYPE_GRAPHIC_PRESSURE);
+    create_box(obj_page, TYPE_GRAPHIC_ECO2);
 
     timestamp = lv_label_create(obj_page);
     lv_obj_align(timestamp, LV_ALIGN_BOTTOM_LEFT, 0, 0);
 }
 
-void create_box(lv_obj_t *parent, enum flag_e flag) {
+void create_box(lv_obj_t *parent, enum type_graphic_e flag_graphic) {
     if(NULL == parent) {
         LV_LOG_USER("parent pointer is NULL");
         return;
@@ -135,34 +199,34 @@ void create_box(lv_obj_t *parent, enum flag_e flag) {
     lv_obj_t *icon = lv_img_create(obj);
     lv_obj_align(icon, LV_ALIGN_TOP_RIGHT, 0, 0);
 
-    switch(flag) {
-        case FLAG_TEMPERATURE :
+    switch(flag_graphic) {
+        case TYPE_GRAPHIC_TEMPERATURE :
             lv_obj_add_flag(obj, LV_OBJ_FLAG_USER_1);
             LV_IMG_DECLARE(img_icon_temperature);
             lv_img_set_src(icon, &img_icon_temperature);
+            lv_label_set_text_fmt(value, "%d °C", g_temperature);
             lv_label_set_text(name, "TEMPERATURE");
-            lv_label_set_text_fmt(value, "%d °C", 25);
             break;
-        case FLAG_HUMIDITY :
+        case TYPE_GRAPHIC_HUMIDITY :
             lv_obj_add_flag(obj, LV_OBJ_FLAG_USER_2);
             LV_IMG_DECLARE(img_icon_humidity);
             lv_img_set_src(icon, &img_icon_humidity);
+            lv_label_set_text_fmt(value, "%d rH", g_humidity);
             lv_label_set_text(name, "HUMIDITY");
-            lv_label_set_text_fmt(value, "%d rH", 52);
             break;
-        case FLAG_PRESSURE :
+        case TYPE_GRAPHIC_PRESSURE :
             lv_obj_add_flag(obj, LV_OBJ_FLAG_USER_3);
             LV_IMG_DECLARE(img_icon_pressure);
             lv_img_set_src(icon, &img_icon_pressure);
+            lv_label_set_text_fmt(value, "%d hPa", g_pressure);
             lv_label_set_text(name, "PRESSURE");
-            lv_label_set_text_fmt(value, "%d hPa", 998);
             break;
-        case FLAG_ECO2 :
+        case TYPE_GRAPHIC_ECO2 :
             lv_obj_add_flag(obj, LV_OBJ_FLAG_USER_4);
             LV_IMG_DECLARE(img_icon_eco2);
             lv_img_set_src(icon, &img_icon_eco2);
+            lv_label_set_text_fmt(value, "%d ppm", g_eco2);
             lv_label_set_text(name, "eCO2");
-            lv_label_set_text_fmt(value, "%d ppm", 440);
             break;
         default:
             break;
@@ -183,46 +247,30 @@ void box_btn_event(lv_event_t *event) {
 
         if(LV_OBJ_FLAG_USER_1 & btn->flags) {
             LV_LOG_USER("Click on Box1 - Top Left");
-            page_graphics_open(FLAG_TEMPERATURE);
+            page_graphics_open(TYPE_GRAPHIC_TEMPERATURE);
         }
         else if(LV_OBJ_FLAG_USER_2 & btn->flags) {
             LV_LOG_USER("Click on Box2 - Top Right");
-            page_graphics_open(FLAG_HUMIDITY);
+            page_graphics_open(TYPE_GRAPHIC_HUMIDITY);
         }
         else if(LV_OBJ_FLAG_USER_3 & btn->flags) {
             LV_LOG_USER("Click on Box3 - Bottom Left");
-            page_graphics_open(FLAG_PRESSURE);
+            page_graphics_open(TYPE_GRAPHIC_PRESSURE);
         }
         else if(LV_OBJ_FLAG_USER_4 & btn->flags) {
             LV_LOG_USER("Click on Box4 - Bottom Right");
-            page_graphics_open(FLAG_ECO2);
+            page_graphics_open(TYPE_GRAPHIC_ECO2);
         }
     }
 }
 
-void page_graphics_open(enum flag_e flag_graphic) {
+void page_graphics_open(enum type_graphic_e flag_graphic) {
     lv_obj_t *page = lv_obj_create(lv_scr_act());
     static lv_style_t style;
     lv_style_init(&style);
     lv_obj_set_size(page, lv_pct(100), lv_pct(100));
     lv_obj_add_style(page, &style, 0);
-
-    switch(flag_graphic) {
-        case FLAG_TEMPERATURE :
-            tab_view(page);
-            break;
-        case FLAG_HUMIDITY :
-            tab_view(page);
-            break;
-        case FLAG_PRESSURE :
-            tab_view(page);
-            break;
-        case FLAG_ECO2 :
-            tab_view(page);
-            break;
-        default:
-            break;
-    }
+    tab_view(page);
 }
 
 void back_btn_event(lv_event_t *event) {
@@ -237,7 +285,7 @@ void back_btn_event(lv_event_t *event) {
     }
 }
 
-void line_chart(lv_obj_t *parent) {
+void line_chart(lv_obj_t *parent, enum type_graphic_e flag_graphic) {
     if(NULL == parent) {
         LV_LOG_USER("parent pointer is NULL");
         return;
@@ -253,12 +301,17 @@ void line_chart(lv_obj_t *parent) {
     lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_Y, 10, 5, 6, 5, true, 40);
     lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_X, 10, 5, 10, 1, true, 30);
 
+    int *data = malloc(sizeof(int)*DATA_NB_ELMT_MAX);
+    int nb_elmt = 0;
+    get_data_graphic(con, flag_graphic, data, &nb_elmt);
+
     /*Set the next points on 'serie1'*/
-    for(int idx=0; idx < 10; idx++) {
-        lv_chart_set_next_value(chart, serie1, 8 * idx + 2);
+    for(int idx=0; idx < nb_elmt; idx++) {
+        lv_chart_set_next_value(chart, serie1, data[idx]);
     }
 
     lv_chart_refresh(chart);
+    free(data);
 }
 
 void tab_view(lv_obj_t *parent) {
@@ -275,13 +328,13 @@ void tab_view(lv_obj_t *parent) {
     lv_obj_t *tab3 = lv_tabview_add_tab(tabview, "Pressure");
     lv_obj_t *tab4 = lv_tabview_add_tab(tabview, "eCO2");
 
-    line_chart(tab1);
+    line_chart(tab1, TYPE_GRAPHIC_TEMPERATURE);
     lv_obj_center(tab1);
 
-    line_chart(tab2);
+    line_chart(tab2, TYPE_GRAPHIC_HUMIDITY);
     lv_obj_center(tab2);
 
-    line_chart(tab3);
+    line_chart(tab3, TYPE_GRAPHIC_PRESSURE);
     lv_obj_center(tab3);
 
     lv_obj_t *label = lv_label_create(tab4);
@@ -315,4 +368,116 @@ void back_btn(lv_obj_t *parent) {
     lv_line_set_points(obj_line, points, 3);
     lv_obj_center(obj_line);
     lv_obj_add_event_cb(back_btn, back_btn_event, LV_EVENT_ALL, NULL);
+}
+
+bool mysql_command(MYSQL *con, const char *cmd, char *result, size_t *size_result) {
+    if((NULL == con) || (NULL == cmd) || (NULL == result)) {
+        LV_LOG_USER("con or cmd or res is NULL");
+        return false;
+    }
+    if(mysql_query(con, cmd)) {
+        fprintf(stderr, "%s\n", mysql_error(con));
+        mysql_close(con);
+        return false;
+    }
+    MYSQL_RES *res = mysql_store_result(con);
+    if(NULL == res) {
+        fprintf(stderr, "%s\n", mysql_error(con));
+        mysql_close(con);
+        return false;
+    }
+    MYSQL_ROW row;
+    uint num_fields = mysql_num_fields(res);
+    //LV_LOG_USER("num_fields: %d", num_fields);
+    while((row = mysql_fetch_row(res))) {
+        for(int i = 0; i < num_fields; i++) {
+            strncat(result, row[i], BUFFER_CHARACTERS_MAX);
+            strcat(result, " ");
+            //LV_LOG_USER("%s ", row[i] ? row[i] : "NULL");
+        }
+        //LV_LOG_USER("\n");
+    }
+    *size_result = strlen(result);
+    mysql_free_result(res);
+
+    if(0 != *size_result)
+        return false;
+    else
+        return true;
+}
+
+/* Get all data for a specific field */
+void get_data_graphic(MYSQL *con, enum type_graphic_e type, int *data, int *nb_elmt) {
+    if((NULL == con) || (NULL == data) || (NULL == nb_elmt)) {
+        LV_LOG_USER("con or data or nb_elmt is NULL");
+        return;
+    }
+    char pType[15] = "";
+    switch (type) {
+        case TYPE_GRAPHIC_TEMPERATURE :
+            strcpy(pType, "temperature");
+            break;
+        case TYPE_GRAPHIC_HUMIDITY :
+            strcpy(pType, "humidity");
+            break;
+        case TYPE_GRAPHIC_PRESSURE :
+            strcpy(pType, "pressure");
+            break;
+        case TYPE_GRAPHIC_ECO2 :
+            strcpy(pType, "eco2");
+            break;
+        default:
+            break;
+    }
+    char *cmd = malloc(sizeof(char)*(BUFFER_CHARACTERS_MAX+1));
+    snprintf(cmd, BUFFER_CHARACTERS_MAX, "SELECT %s FROM %s", pType, MYSQL_TABLE_SELECTED);
+    char *res = malloc(sizeof(char)*(BUFFER_CHARACTERS_MAX+1));
+    memset(res, '\0', BUFFER_CHARACTERS_MAX+1);
+    size_t size_res = 0;
+    mysql_command(con, cmd, res, &size_res);
+    LV_LOG_USER("Raw [%d] %s", size_res, res);
+
+    // Returns first token
+    char *save_ptr;
+    char *token = strtok_r(res, " ", &save_ptr);
+
+    *nb_elmt = 0;
+    while(NULL != token) {
+        *nb_elmt += 1;
+        //LV_LOG_USER("Token [%d] %s", *nb_elmt, token);
+        data[*nb_elmt-1] = atoi(token);
+        token = strtok_r(NULL, " ", &save_ptr);
+    }
+    free(cmd);
+    free(res);
+}
+
+/* Get the lastest data */
+void get_data_dashboard(MYSQL *con, int *data, int *nb_elmt) {
+    if((NULL == con) || (NULL == data) || (NULL == nb_elmt) ) {
+        LV_LOG_USER("con or data or nb_elmt is NULL");
+        return;
+    }
+    char *cmd = malloc(sizeof(char)*(BUFFER_CHARACTERS_MAX+1));
+    snprintf(cmd, BUFFER_CHARACTERS_MAX, "SELECT * FROM %s ORDER BY id DESC LIMIT 1", MYSQL_TABLE_SELECTED);
+    char *res = malloc(sizeof(char)*(BUFFER_CHARACTERS_MAX+1));
+    memset(res, '\0', BUFFER_CHARACTERS_MAX+1);
+    size_t size_res = 0;
+    mysql_command(con, cmd, res, &size_res);
+    LV_LOG_USER("Raw [%d] %s", size_res, res);
+
+    // Returns first token
+    char *save_ptr;
+    char *token = strtok_r(res, " ", &save_ptr);
+
+    *nb_elmt = 0;
+    while(NULL != token) {
+        *nb_elmt += 1;
+        //LV_LOG_USER("Token [%d] %s", *nb_elmt, token);
+        data[*nb_elmt-1] = atoi(token);
+        token = strtok_r(NULL, " ", &save_ptr);
+    }
+
+    free(cmd);
+    free(res);
 }
