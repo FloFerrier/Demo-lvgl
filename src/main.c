@@ -56,6 +56,9 @@ static bool mysql_command(MYSQL *con, const char *cmd, char *res, size_t *size_r
 static void get_data_graphic(MYSQL *con, enum type_graphic_e type, int *data, int *nb_elmt);
 static void get_data_dashboard(MYSQL *con, int *data, int *nb_elmt);
 
+static int min_value(int *data, int nb_elmt);
+static int max_value(int *data, int nb_elmt);
+
 int main(void) {
 
     LV_LOG_USER("DEMO-LVGL");
@@ -293,22 +296,27 @@ void line_chart(lv_obj_t *parent, enum type_graphic_e flag_graphic) {
     lv_obj_t *chart = lv_chart_create(parent);
     lv_obj_set_size(chart, 200, 150);
     lv_obj_center(chart);
-    lv_chart_set_type(chart, LV_CHART_TYPE_LINE);   /*Show lines and points too*/
+    lv_chart_set_type(chart, LV_CHART_TYPE_SCATTER);   /*Show lines and points too*/
 
     /*Add two data series*/
     lv_chart_series_t *serie1 = lv_chart_add_series(chart, lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_PRIMARY_Y);
 
-    lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_Y, 10, 5, 6, 5, true, 40);
-    lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_X, 10, 5, 10, 1, true, 30);
-
     int *data = malloc(sizeof(int)*DATA_NB_ELMT_MAX);
     int nb_elmt = 0;
     get_data_graphic(con, flag_graphic, data, &nb_elmt);
+    lv_chart_set_point_count(chart, nb_elmt);
 
     /*Set the next points on 'serie1'*/
     for(int idx=0; idx < nb_elmt; idx++) {
-        lv_chart_set_next_value(chart, serie1, data[idx]);
+        lv_chart_set_next_value2(chart, serie1, idx, data[idx]);
+        LV_LOG_USER("data[%d]=%d", serie1->x_points[idx], serie1->y_points[idx]);
     }
+
+    lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_Y, 10, 5, 6, 5, true, 60);
+    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_X, 0, nb_elmt);
+
+    lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_X, 10, 5, 6, 1, true, 30);
+    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, min_value(data, nb_elmt), max_value(data, nb_elmt));
 
     lv_chart_refresh(chart);
     free(data);
@@ -480,4 +488,30 @@ void get_data_dashboard(MYSQL *con, int *data, int *nb_elmt) {
 
     free(cmd);
     free(res);
+}
+
+int min_value(int *data, int nb_elmt) {
+    if((NULL == data) || (0 >= nb_elmt)) {
+        return 0;
+    }
+    int tmp = data[0];
+    for(int i=0; i<nb_elmt; i++) {
+        if(data[i] < tmp) {
+            tmp = data[i];
+        }
+    }
+    return tmp;
+}
+
+int max_value(int *data, int nb_elmt) {
+    if((NULL == data) || (0 >= nb_elmt)) {
+        return 0;
+    }
+    int tmp = data[0];
+    for(int i=0; i<nb_elmt; i++) {
+        if(data[i] > tmp) {
+            tmp = data[i];
+        }
+    }
+    return tmp;
 }
