@@ -141,7 +141,7 @@ void page_home_open(void) {
     int nb_elmt = 0;
     get_data_dashboard(con, data, &nb_elmt);
     if(6 != nb_elmt) {
-        LV_LOG_USER("data from databse may to be corrupted ...");
+        LV_LOG_USER("data from database may to be corrupted ...");
     }
     else {
         g_id          = data[0];
@@ -383,6 +383,7 @@ bool mysql_command(MYSQL *con, const char *cmd, char *result, size_t *size_resul
         LV_LOG_USER("con or cmd or res is NULL");
         return false;
     }
+    LV_LOG_USER("[CMD] %s", cmd);
     if(mysql_query(con, cmd)) {
         fprintf(stderr, "%s\n", mysql_error(con));
         mysql_close(con);
@@ -438,12 +439,12 @@ void get_data_graphic(MYSQL *con, enum type_graphic_e type, int *data, int *nb_e
             break;
     }
     char *cmd = malloc(sizeof(char)*(BUFFER_CHARACTERS_MAX+1));
-    snprintf(cmd, BUFFER_CHARACTERS_MAX, "SELECT %s FROM %s", pType, MYSQL_TABLE_SELECTED);
+    snprintf(cmd, BUFFER_CHARACTERS_MAX, "SELECT %s FROM %s", pType, g_tablename);
     char *res = malloc(sizeof(char)*(BUFFER_CHARACTERS_MAX+1));
     memset(res, '\0', BUFFER_CHARACTERS_MAX+1);
     size_t size_res = 0;
     mysql_command(con, cmd, res, &size_res);
-    LV_LOG_USER("Raw [%d] %s", size_res, res);
+    LV_LOG_USER("Raw [%ld] %s", size_res, res);
 
     // Returns first token
     char *save_ptr;
@@ -467,12 +468,12 @@ void get_data_dashboard(MYSQL *con, int *data, int *nb_elmt) {
         return;
     }
     char *cmd = malloc(sizeof(char)*(BUFFER_CHARACTERS_MAX+1));
-    snprintf(cmd, BUFFER_CHARACTERS_MAX, "SELECT * FROM %s ORDER BY id DESC LIMIT 1", MYSQL_TABLE_SELECTED);
+    snprintf(cmd, BUFFER_CHARACTERS_MAX, "SELECT * FROM %s ORDER BY id DESC LIMIT 1", g_tablename);
     char *res = malloc(sizeof(char)*(BUFFER_CHARACTERS_MAX+1));
     memset(res, '\0', BUFFER_CHARACTERS_MAX+1);
     size_t size_res = 0;
     mysql_command(con, cmd, res, &size_res);
-    LV_LOG_USER("Raw [%d] %s", size_res, res);
+    LV_LOG_USER("Raw [%ld] %s", size_res, res);
 
     // Returns first token
     char *save_ptr;
