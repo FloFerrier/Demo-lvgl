@@ -18,10 +18,9 @@
 #define BUFFER_CHARACTERS_MAX 255
 #define DATA_NB_ELMT_MAX      255
 
-#define MYSQL_USER_NAME      "openpill-dev"
-#define MYSQL_USER_PASSWORD  "openpill"
-#define MYSQL_DATABASE       "Openpill"
-#define MYSQL_TABLE_SELECTED "13July2022"
+#define MYSQL_USER_NAME      "test"
+#define MYSQL_USER_PASSWORD  "test"
+#define MYSQL_DATABASE       "test_db"
 
 enum type_graphic_e {
     TYPE_GRAPHIC_TEMPERATURE,
@@ -39,6 +38,8 @@ static int g_temperature;
 static int g_humidity;
 static int g_pressure;
 static int g_eco2;
+
+static char g_tablename[10] = "";
 
 static void box_btn_event(lv_event_t *event);
 static void back_btn_event(lv_event_t *event);
@@ -114,11 +115,16 @@ int main(void) {
     }
     LV_LOG_USER("%s is selected with success", MYSQL_DATABASE);
 
-    /* Page at startup */
-    page_home_open();
-
     struct tm *current_time;
     time_t epoch;
+    epoch = time(NULL);
+    current_time = gmtime(&epoch);
+
+    char *encoded_time = malloc(sizeof(char)*(BUFFER_CHARACTERS_MAX+1));
+    strftime(g_tablename, BUFFER_CHARACTERS_MAX, "%d%B%Y", current_time);
+
+    /* Page at startup */
+    page_home_open();
 
     /*Handle LitlevGL tasks (tickless mode)*/
     while(1) {
@@ -126,12 +132,13 @@ int main(void) {
         lv_task_handler();
         epoch = time(NULL);
         current_time = gmtime(&epoch);
-        lv_label_set_text_fmt(timestamp, "TIMESTAMP %02d/%02d/%02d %d:%02d:%02d",
-            current_time->tm_mday, current_time->tm_mon + 1, current_time->tm_year + 1900,\
-            current_time->tm_hour, current_time->tm_min, current_time->tm_sec);
+
+        strftime(encoded_time, BUFFER_CHARACTERS_MAX, "%d/%m/%Y %H:%M:%S", current_time);
+        lv_label_set_text_fmt(timestamp, "TIMESTAMP %s", encoded_time);
         //usleep(5000);
     }
 
+    free(encoded_time);
     mysql_close(con);
     return 0;
 }
