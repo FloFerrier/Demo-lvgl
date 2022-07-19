@@ -29,6 +29,13 @@ enum type_graphic_e {
     TYPE_GRAPHIC_ECO2,
 };
 
+enum error_database_e {
+    ERROR_DATABASE_INIT,
+    ERROR_DATABASE_CONNECT,
+    ERROR_DATABASE_SELECT,
+    ERROR_DATABASE_DATA,
+};
+
 static lv_obj_t *timestamp;
 static MYSQL *con;
 
@@ -44,7 +51,8 @@ static char g_tablename[10] = "";
 static void box_btn_event(lv_event_t *event);
 static void back_btn_event(lv_event_t *event);
 
-static void page_home_open(void);
+static bool page_home_open(void);
+static void page_error_database(enum error_database_e error);
 static void page_graphics_open(enum type_graphic_e flag_graphic);
 
 static void create_box(lv_obj_t *parent, enum type_graphic_e flag_graphic);
@@ -59,6 +67,8 @@ static void get_data_dashboard(MYSQL *con, int *data, int *nb_elmt);
 
 static int min_value(int *data, int nb_elmt);
 static int max_value(int *data, int nb_elmt);
+
+static void infinite_loop(void);
 
 int main(void) {
 
@@ -100,18 +110,21 @@ int main(void) {
     con = mysql_init(NULL);
     if(NULL == con) {
         fprintf(stderr, "%s\n", mysql_error(con));
+        page_error_database(ERROR_DATABASE_INIT);
     }
 
     if(NULL == mysql_real_connect(con, "localhost", MYSQL_USER_NAME, MYSQL_USER_PASSWORD,
         NULL, 0, NULL, 0)) {
         fprintf(stderr, "%s\n", mysql_error(con));
         mysql_close(con);
+        page_error_database(ERROR_DATABASE_CONNECT);
     }
 
     /* Select correct database */
     if(0 != mysql_select_db(con, MYSQL_DATABASE)) {
         fprintf(stderr, "Error to select %s\n", MYSQL_DATABASE);
         mysql_close(con);
+        page_error_database(ERROR_DATABASE_SELECT);
     }
     LV_LOG_USER("%s is selected with success", MYSQL_DATABASE);
 
@@ -124,7 +137,10 @@ int main(void) {
     strftime(g_tablename, BUFFER_CHARACTERS_MAX, "%d%B%Y", current_time);
 
     /* Page at startup */
-    page_home_open();
+    if(!page_home_open()) {
+        LV_LOG_USER("data from database may to be corrupted ...");
+        page_error_database(ERROR_DATABASE_DATA);
+    }
 
     /*Handle LitlevGL tasks (tickless mode)*/
     while(1) {
@@ -143,12 +159,12 @@ int main(void) {
     return 0;
 }
 
-void page_home_open(void) {
+bool page_home_open(void) {
     int *data = malloc(sizeof(int)*DATA_NB_ELMT_MAX);
     int nb_elmt = 0;
     get_data_dashboard(con, data, &nb_elmt);
     if(6 != nb_elmt) {
-        LV_LOG_USER("data from database may to be corrupted ...");
+        return false;
     }
     else {
         g_id          = data[0];
@@ -185,6 +201,8 @@ void page_home_open(void) {
 
     timestamp = lv_label_create(obj_page);
     lv_obj_align(timestamp, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+
+    return true;
 }
 
 void create_box(lv_obj_t *parent, enum type_graphic_e flag_graphic) {
@@ -271,6 +289,48 @@ void box_btn_event(lv_event_t *event) {
             LV_LOG_USER("Click on Box4 - Bottom Right");
             page_graphics_open(TYPE_GRAPHIC_ECO2);
         }
+    }
+}
+
+void page_error_database(enum error_database_e error) {
+    static lv_style_t style;
+    lv_style_init(&style);
+
+    lv_obj_t *obj = lv_obj_create(lv_scr_act());
+    lv_obj_add_style(obj, &style, 0);
+    lv_obj_set_size(obj, lv_pct(100), lv_pct(100));
+
+    lv_obj_t *text = lv_label_create(obj);
+    lv_obj_center(text);
+
+    char *text_error = malloc(sizeof(char)*(BUFFER_CHARACTERS_MAX+1));
+    switch(error) {
+        case ERROR_DATABASE_INIT :
+            strncpy(text_error, "ERROR_DATABASE_INIT", BUFFER_CHARACTERS_MAX);
+            break;
+        case ERROR_DATABASE_CONNECT :
+            strncpy(text_error, "ERROR_DATABASE_CONNECT", BUFFER_CHARACTERS_MAX);
+            break;
+        case ERROR_DATABASE_SELECT :
+            strncpy(text_error, "ERROR_DATABASE_SELECT", BUFFER_CHARACTERS_MAX);
+            break;
+        case ERROR_DATABASE_DATA:
+            strncpy(text_error, "ERROR_DATABASE_DATA", BUFFER_CHARACTERS_MAX);
+            break;
+        default:
+            strncpy(text_error, "", BUFFER_CHARACTERS_MAX);
+            break;
+    }
+    lv_label_set_text(text, text_error);
+    free(text_error);
+
+    infinite_loop();
+}
+
+void infinite_loop(void) {
+    while(1) {
+        lv_tick_inc(600);
+        lv_task_handler();
     }
 }
 
