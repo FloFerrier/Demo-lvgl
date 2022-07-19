@@ -8,6 +8,10 @@ For the first time, we use a script for simulating Openpill board.
 - LVGL
 - MariaDB
 ## Setup
+### Startup
+```bash
+sudo apt install build-essential libsdl2-2.0-0 libsdl2-dev libinput
+```
 ### Create a database with MySQL/MariaDB
 #### Add user and database
 ```bash
