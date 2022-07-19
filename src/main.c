@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <mysql.h>
 #include <SDL2/SDL.h>
+#include <assert.h>
 
 #define SDL_MAIN_HANDLED /*To fix SDL's "undefined reference to WinMain" issue*/
 
@@ -206,10 +207,8 @@ bool page_home_open(void) {
 }
 
 void create_box(lv_obj_t *parent, enum type_graphic_e flag_graphic) {
-    if(NULL == parent) {
-        LV_LOG_USER("parent pointer is NULL");
-        return;
-    }
+    assert(NULL != parent);
+
     static lv_style_t style_box;
     lv_style_init(&style_box);
     lv_style_set_bg_opa(&style_box, LV_OPA_COVER);
@@ -262,10 +261,8 @@ void create_box(lv_obj_t *parent, enum type_graphic_e flag_graphic) {
 }
 
 void box_btn_event(lv_event_t *event) {
-    if(NULL == event) {
-        LV_LOG_USER("event pointer is NULL");
-        return;
-    }
+    assert(NULL != event);
+
     lv_event_code_t code = lv_event_get_code(event);
     lv_obj_t *btn = lv_event_get_target(event);
 
@@ -344,10 +341,8 @@ void page_graphics_open(enum type_graphic_e flag_graphic) {
 }
 
 void back_btn_event(lv_event_t *event) {
-    if(NULL == event) {
-        LV_LOG_USER("event pointer is NULL");
-        return;
-    }
+    assert(NULL != event);
+
     lv_event_code_t code = lv_event_get_code(event);
     if (LV_EVENT_CLICKED == code) {
         LV_LOG_USER("Click on back button => Open Home Page");
@@ -356,10 +351,8 @@ void back_btn_event(lv_event_t *event) {
 }
 
 void line_chart(lv_obj_t *parent, enum type_graphic_e flag_graphic) {
-    if(NULL == parent) {
-        LV_LOG_USER("parent pointer is NULL");
-        return;
-    }
+    assert(NULL != parent);
+
     lv_obj_t *chart = lv_chart_create(parent);
     lv_obj_set_size(chart, 200, 150);
     lv_obj_center(chart);
@@ -390,10 +383,8 @@ void line_chart(lv_obj_t *parent, enum type_graphic_e flag_graphic) {
 }
 
 void tab_view(lv_obj_t *parent) {
-    if(NULL == parent) {
-        LV_LOG_USER("parent pointer is NULL");
-        return;
-    }
+    assert(NULL != parent);
+
     lv_obj_t *tabview;
     tabview = lv_tabview_create(parent, LV_DIR_TOP, lv_pct(20));
     //lv_menu_set_mode_root_back_btn(parent, LV_MENU_ROOT_BACK_BTN_ENABLED);
@@ -420,10 +411,8 @@ void tab_view(lv_obj_t *parent) {
 }
 
 void back_btn(lv_obj_t *parent) {
-    if(NULL == parent) {
-        LV_LOG_USER("parent pointer is NULL");
-        return;
-    }
+    assert(NULL != parent);
+
     static lv_style_t style_btn;
     lv_style_init(&style_btn);
     lv_style_set_radius(&style_btn, 50);
@@ -446,10 +435,8 @@ void back_btn(lv_obj_t *parent) {
 }
 
 bool mysql_command(MYSQL *con, const char *cmd, char *result, size_t *size_result) {
-    if((NULL == con) || (NULL == cmd) || (NULL == result)) {
-        LV_LOG_USER("con or cmd or res is NULL");
-        return false;
-    }
+    assert((NULL != con) && (NULL != cmd) && (NULL != result));
+
     LV_LOG_USER("[CMD] %s", cmd);
     if(mysql_query(con, cmd)) {
         fprintf(stderr, "%s\n", mysql_error(con));
@@ -484,10 +471,8 @@ bool mysql_command(MYSQL *con, const char *cmd, char *result, size_t *size_resul
 
 /* Get all data for a specific field */
 void get_data_graphic(MYSQL *con, enum type_graphic_e type, int *data, int *nb_elmt) {
-    if((NULL == con) || (NULL == data) || (NULL == nb_elmt)) {
-        LV_LOG_USER("con or data or nb_elmt is NULL");
-        return;
-    }
+    assert((NULL != con) && (NULL != data) && (NULL != nb_elmt));
+
     char *name = malloc(sizeof(char)*(BUFFER_CHARACTERS_MAX+1));
     switch (type) {
         case TYPE_GRAPHIC_TEMPERATURE :
@@ -532,10 +517,8 @@ void get_data_graphic(MYSQL *con, enum type_graphic_e type, int *data, int *nb_e
 
 /* Get the lastest data */
 void get_data_dashboard(MYSQL *con, int *data, int *nb_elmt) {
-    if((NULL == con) || (NULL == data) || (NULL == nb_elmt) ) {
-        LV_LOG_USER("con or data or nb_elmt is NULL");
-        return;
-    }
+    assert((NULL!=con) && (NULL!=data) && (NULL!=nb_elmt));
+
     char *cmd = malloc(sizeof(char)*(BUFFER_CHARACTERS_MAX+1));
     snprintf(cmd, BUFFER_CHARACTERS_MAX, "SELECT * FROM %s ORDER BY id DESC LIMIT 1", g_tablename);
     char *res = malloc(sizeof(char)*(BUFFER_CHARACTERS_MAX+1));
@@ -561,9 +544,8 @@ void get_data_dashboard(MYSQL *con, int *data, int *nb_elmt) {
 }
 
 int min_value(int *data, int nb_elmt) {
-    if((NULL == data) || (0 >= nb_elmt)) {
-        return 0;
-    }
+    assert(NULL!=data);
+
     int tmp = data[0];
     for(int i=0; i<nb_elmt; i++) {
         if(data[i] < tmp) {
@@ -574,9 +556,8 @@ int min_value(int *data, int nb_elmt) {
 }
 
 int max_value(int *data, int nb_elmt) {
-    if((NULL == data) || (0 >= nb_elmt)) {
-        return 0;
-    }
+    assert(NULL!=data);
+
     int tmp = data[0];
     for(int i=0; i<nb_elmt; i++) {
         if(data[i] > tmp) {
