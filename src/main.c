@@ -110,20 +110,20 @@ int main(void) {
     LV_LOG_USER("MySQL client version: %s", mysql_get_client_info());
     con = mysql_init(NULL);
     if(NULL == con) {
-        fprintf(stderr, "%s\n", mysql_error(con));
+        LV_LOG_ERROR("%s\n", mysql_error(con));
         page_error_database(ERROR_DATABASE_INIT);
     }
 
     if(NULL == mysql_real_connect(con, "localhost", MYSQL_USER_NAME, MYSQL_USER_PASSWORD,
         NULL, 0, NULL, 0)) {
-        fprintf(stderr, "%s\n", mysql_error(con));
+        LV_LOG_ERROR("%s\n", mysql_error(con));
         mysql_close(con);
         page_error_database(ERROR_DATABASE_CONNECT);
     }
 
     /* Select correct database */
     if(0 != mysql_select_db(con, MYSQL_DATABASE)) {
-        fprintf(stderr, "Error to select %s\n", MYSQL_DATABASE);
+        LV_LOG_ERROR("Error to select %s\n", MYSQL_DATABASE);
         mysql_close(con);
         page_error_database(ERROR_DATABASE_SELECT);
     }
@@ -139,7 +139,7 @@ int main(void) {
 
     /* Page at startup */
     if(!page_home_open()) {
-        LV_LOG_USER("data from database may to be corrupted ...");
+        LV_LOG_ERROR("data from database may to be corrupted ...");
         page_error_database(ERROR_DATABASE_DATA);
     }
 
