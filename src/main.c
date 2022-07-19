@@ -16,7 +16,7 @@
 #define DISP_BUF_SIZE (SDL_HOR_RES * SDL_VER_RES)
 
 #define BUFFER_CHARACTERS_MAX 255
-#define DATA_NB_ELMT_MAX      255
+#define DATA_NB_ELMT_MAX      20
 
 #define MYSQL_USER_NAME      "test"
 #define MYSQL_USER_PASSWORD  "test"
@@ -506,7 +506,7 @@ void get_data_graphic(MYSQL *con, enum type_graphic_e type, int *data, int *nb_e
             break;
     }
     char *cmd = malloc(sizeof(char)*(BUFFER_CHARACTERS_MAX+1));
-    snprintf(cmd, BUFFER_CHARACTERS_MAX, "SELECT %s FROM %s", pType, g_tablename);
+    snprintf(cmd, BUFFER_CHARACTERS_MAX, "SELECT %s FROM %s ORDER BY id DESC LIMIT %d", pType, g_tablename, DATA_NB_ELMT_MAX);
     char *res = malloc(sizeof(char)*(BUFFER_CHARACTERS_MAX+1));
     memset(res, '\0', BUFFER_CHARACTERS_MAX+1);
     size_t size_res = 0;
