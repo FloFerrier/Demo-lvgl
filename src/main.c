@@ -488,25 +488,26 @@ void get_data_graphic(MYSQL *con, enum type_graphic_e type, int *data, int *nb_e
         LV_LOG_USER("con or data or nb_elmt is NULL");
         return;
     }
-    char pType[15] = "";
+    char *name = malloc(sizeof(char)*(BUFFER_CHARACTERS_MAX+1));
     switch (type) {
         case TYPE_GRAPHIC_TEMPERATURE :
-            strcpy(pType, "temperature");
+            strncpy(name, "temperature", BUFFER_CHARACTERS_MAX);
             break;
         case TYPE_GRAPHIC_HUMIDITY :
-            strcpy(pType, "humidity");
+            strncpy(name, "humidity", BUFFER_CHARACTERS_MAX);
             break;
         case TYPE_GRAPHIC_PRESSURE :
-            strcpy(pType, "pressure");
+            strncpy(name, "pressure", BUFFER_CHARACTERS_MAX);
             break;
         case TYPE_GRAPHIC_ECO2 :
-            strcpy(pType, "eco2");
+            strncpy(name, "eco2", BUFFER_CHARACTERS_MAX);
             break;
         default:
+            strncpy(name, "", BUFFER_CHARACTERS_MAX);
             break;
     }
     char *cmd = malloc(sizeof(char)*(BUFFER_CHARACTERS_MAX+1));
-    snprintf(cmd, BUFFER_CHARACTERS_MAX, "SELECT %s FROM %s ORDER BY id DESC LIMIT %d", pType, g_tablename, DATA_NB_ELMT_MAX);
+    snprintf(cmd, BUFFER_CHARACTERS_MAX, "SELECT %s FROM %s ORDER BY id DESC LIMIT %d", name, g_tablename, DATA_NB_ELMT_MAX);
     char *res = malloc(sizeof(char)*(BUFFER_CHARACTERS_MAX+1));
     memset(res, '\0', BUFFER_CHARACTERS_MAX+1);
     size_t size_res = 0;
@@ -524,6 +525,7 @@ void get_data_graphic(MYSQL *con, enum type_graphic_e type, int *data, int *nb_e
         data[*nb_elmt-1] = atoi(token);
         token = strtok_r(NULL, " ", &save_ptr);
     }
+    free(name);
     free(cmd);
     free(res);
 }
