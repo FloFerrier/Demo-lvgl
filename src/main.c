@@ -369,7 +369,6 @@ void line_chart(lv_obj_t *parent, enum type_graphic_e flag_graphic) {
     /*Set the next points on 'serie1'*/
     for(int idx=0; idx < nb_elmt; idx++) {
         lv_chart_set_next_value2(chart, serie1, idx, data[idx]);
-        LV_LOG_USER("data[%d]=%d", serie1->x_points[idx], serie1->y_points[idx]);
     }
 
     lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_Y, 10, 5, 6, 5, true, 60);
