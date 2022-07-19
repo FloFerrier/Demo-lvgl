@@ -4,6 +4,8 @@ project(ui-lvgl)
 
 set(SOURCE_FILES
     main.c
+    ui_utils.c
+    db_utils.c
     img_icon_eco2.c
     img_icon_humidity.c
     img_icon_pressure.c
