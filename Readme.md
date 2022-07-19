@@ -7,6 +7,24 @@ For the first time, we use a script for simulating Openpill board.
 - CMake
 - LVGL
 - MariaDB
+## Project directory
+```
+Demo-LVGL
+|─── Readme.md
+|─── Todo.md
+|─── CMakeLists.txt
+|─── bin
+      └── ui-lvgl
+|─── build
+      └── *
+|─── cmake-modules
+      └── FindMariaDBClient.cmake
+|─── include
+      └── *.h
+|─── src
+      ├── CMakeLists.txt
+      └── *.c
+```
 ## Setup
 ### Startup
 ```bash
