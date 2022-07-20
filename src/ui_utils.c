@@ -19,6 +19,7 @@ void create_box(lv_obj_t *parent, enum type_graphic_e flag_graphic) {
     lv_obj_align(name, LV_ALIGN_BOTTOM_LEFT, 0, 0);
     lv_obj_t *value = lv_label_create(obj);
     lv_obj_align(value, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_obj_set_style_text_font(value, &lv_font_montserrat_22, 0);
     lv_obj_t *icon = lv_img_create(obj);
     lv_obj_align(icon, LV_ALIGN_TOP_RIGHT, 0, 0);
 
