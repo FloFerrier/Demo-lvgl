@@ -62,7 +62,7 @@ void line_chart(lv_obj_t *parent, MYSQL *con, enum type_graphic_e flag_graphic) 
 
     lv_obj_t *chart = lv_chart_create(parent);
     lv_obj_set_size(chart, 200, 150);
-    lv_obj_center(chart);
+    lv_obj_align(chart, LV_ALIGN_TOP_MID, 0, 0);
     lv_chart_set_type(chart, LV_CHART_TYPE_SCATTER);   /*Show lines and points too*/
 
     /*Add two data series*/
@@ -85,8 +85,32 @@ void line_chart(lv_obj_t *parent, MYSQL *con, enum type_graphic_e flag_graphic) 
     lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_X, 10, 5, 6, 1, true, 30);
     lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, min_value(data, nb_elmt), max_value(data, nb_elmt));
 
+    char *text_legend = malloc(sizeof(char)*(BUFFER_CHARACTERS_MAX+1));
+    switch (flag_graphic) {
+        case TYPE_GRAPHIC_TEMPERATURE :
+            strncpy(text_legend, "Temperature (°C)", BUFFER_CHARACTERS_MAX);
+            break;
+        case TYPE_GRAPHIC_HUMIDITY :
+            strncpy(text_legend, "Humidity (rH)", BUFFER_CHARACTERS_MAX);
+            break;
+        case TYPE_GRAPHIC_PRESSURE :
+            strncpy(text_legend, "Pressure (hPa)", BUFFER_CHARACTERS_MAX);
+            break;
+        case TYPE_GRAPHIC_ECO2 :
+            strncpy(text_legend, "eCO2 (ppm)", BUFFER_CHARACTERS_MAX);
+            break;
+        default:
+            strncpy(text_legend, "", BUFFER_CHARACTERS_MAX);
+            break;
+    }
+
+    lv_obj_t *legend = lv_label_create(parent);
+    lv_label_set_text_fmt(legend, "%s in function of sample number", text_legend);
+    lv_obj_align(legend, LV_ALIGN_BOTTOM_MID, 0, 0);
+
     lv_chart_refresh(chart);
     free(data);
+    free(text_legend);
 }
 
 void tab_view(lv_obj_t *parent, MYSQL *database) {
