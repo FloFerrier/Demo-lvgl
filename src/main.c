@@ -16,6 +16,7 @@
 
 #include "ui_utils.h"
 #include "db_utils.h"
+#include "gen_header.h"
 
 #define DISP_BUF_SIZE (SDL_HOR_RES * SDL_VER_RES)
 

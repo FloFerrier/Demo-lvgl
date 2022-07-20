@@ -1,0 +1,8 @@
+#ifndef GEN_HEADER_H
+#define GEN_HEADER_H
+
+#define MYSQL_USER_NAME      "@DATABASE_USER@"//"test"
+#define MYSQL_USER_PASSWORD  "@DATABASE_PASSWORD@"//"test"
+#define MYSQL_DATABASE       "@DATABASE_NAME@"//"test_db"
+
+#endif /* GEN_HEADER_H */

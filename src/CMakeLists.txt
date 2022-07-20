@@ -18,6 +18,15 @@ set(LV_CONF_PATH
 
 set(LV_LVGL_H_INCLUDE_SIMPLE)
 
+set(DATABASE_USER     "test")
+set(DATABASE_PASSWORD "test")
+set(DATABASE_NAME     "test_db")
+
+configure_file (
+    "${INCLUDE_DIR}/gen_header.h.in"
+    "${INCLUDE_DIR}/gen_header.h"
+)
+
 find_package(SDL2 REQUIRED SDL2)
 include_directories(${SDL2_INCLUDE_DIRS})
 

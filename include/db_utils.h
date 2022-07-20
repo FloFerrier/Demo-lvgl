@@ -5,10 +5,6 @@
 #include <stdbool.h>
 #include "ui_utils.h"
 
-#define MYSQL_USER_NAME      "test"
-#define MYSQL_USER_PASSWORD  "test"
-#define MYSQL_DATABASE       "test_db"
-
 #define BUFFER_CHARACTERS_MAX 255
 
 enum type_graphic_e {
