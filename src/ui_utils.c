@@ -79,7 +79,7 @@ void line_chart(lv_obj_t *parent, MYSQL *con, enum type_graphic_e flag_graphic) 
     }
 
     lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_Y, 10, 5, 6, 5, true, 60);
-    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_X, 0, nb_elmt);
+    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_X, 0, nb_elmt-1);
 
     lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_X, 10, 5, 6, 1, true, 30);
     lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, min_value(data, nb_elmt), max_value(data, nb_elmt));
